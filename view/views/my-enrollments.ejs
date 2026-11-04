@@ -1,0 +1,21 @@
+<%- include('partials/header') %>
+<h1>My Enrollments</h1>
+<% if (!records.length) { %>
+  <p>You are not enrolled in any course yet.</p>
+<% } else { %>
+<div class="table-wrap">
+<table>
+  <tr><th>Code</th><th>Section</th><th>Name</th><th>Schedule</th><th>Enrolled on</th></tr>
+  <% records.forEach(r => { %>
+  <tr>
+    <td><%= r.course_code %></td>
+    <td><%= r.section %></td>
+    <td><%= r.course_name %></td>
+    <td><%= r.schedule %></td>
+    <td><%= r.enrolled_at %></td>
+  </tr>
+  <% }) %>
+</table>
+</div>
+<% } %>
+<%- include('partials/footer') %>

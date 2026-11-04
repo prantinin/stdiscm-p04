@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enrollment System</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<nav>
+  <a class="brand" href="/">Enrollment System</a>
+  <% if (user) { %>
+    <a href="/courses">Courses</a>
+    <% if (user.role === 'STUDENT') { %>
+      <a href="/enroll">Enroll</a>
+      <a href="/enrollments">My Enrollments</a>
+      <a href="/grades">My Grades</a>
+    <% } else if (user.role === 'FACULTY') { %>
+      <a href="/grades/upload">Upload Grades</a>
+    <% } %>
+    <span class="spacer"></span>
+    <span class="who"><%= user.name %> (<%= user.role %>)</span>
+    <form method="post" action="/logout"><button class="secondary">Logout</button></form>
+  <% } %>
+</nav>
+<main>
+<% if (error) { %><div class="msg error"><%= error %></div><% } %>
+<% if (success) { %><div class="msg success"><%= success %></div><% } %>

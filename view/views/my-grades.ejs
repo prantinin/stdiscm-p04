@@ -1,0 +1,20 @@
+<%- include('partials/header') %>
+<h1>My Grades</h1>
+<% if (!grades.length) { %>
+  <p>No grades yet.</p>
+<% } else { %>
+<div class="table-wrap">
+<table>
+  <tr><th>Term</th><th>Course</th><th>Grade</th><th>Uploaded by</th></tr>
+  <% grades.forEach(g => { %>
+  <tr>
+    <td><%= g.term %></td>
+    <td><%= g.course_code %></td>
+    <td><%= g.grade %></td>
+    <td><%= g.uploaded_by %></td>
+  </tr>
+  <% }) %>
+</table>
+</div>
+<% } %>
+<%- include('partials/footer') %>

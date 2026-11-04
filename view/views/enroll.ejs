@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<div class="card narrow">
+  <h1>Enroll in a Course</h1>
+  <p class="hint">Type the course code and section exactly as shown in the course list.</p>
+  <form method="post" action="/enroll">
+    <label>Course code
+      <input name="course_code" maxlength="16" value="<%= values.course_code || '' %>" required>
+    </label>
+    <label>Section
+      <input name="section" maxlength="8" value="<%= values.section || '' %>" required>
+    </label>
+    <button>Enroll</button>
+  </form>
+</div>
+<%- include('partials/footer') %>

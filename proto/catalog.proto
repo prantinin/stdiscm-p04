@@ -1,0 +1,16 @@
+syntax = "proto3";
+package enrollment.catalog;
+option java_multiple_files = true;
+option java_package = "enrollment.catalog";
+
+service CatalogService {
+  rpc ListCourses(ListCoursesRequest) returns (ListCoursesResponse);
+}
+message Course {
+  int64 id = 1; string code = 2; string name = 3; string section = 4;
+  string schedule = 5; int32 capacity = 6; int32 enrolled = 7;
+  string status = 8;            // OPEN or CLOSED
+  string faculty_name = 9;
+}
+message ListCoursesRequest { bool open_only = 1; }
+message ListCoursesResponse { repeated Course courses = 1; }

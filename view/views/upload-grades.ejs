@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+<div class="card narrow">
+  <h1>Upload a Grade</h1>
+  <form method="post" action="/grades/upload">
+    <label>Student ID
+      <input name="student_username" maxlength="32" value="<%= values.student_username || '' %>" required>
+    </label>
+    <label>Course code
+      <input name="course_code" maxlength="16" value="<%= values.course_code || '' %>" required>
+    </label>
+    <label>Term (e.g. 2025-T1)
+      <input name="term" maxlength="16" placeholder="2025-T1" value="<%= values.term || '' %>" required>
+    </label>
+    <label>Grade
+      <select name="grade">
+        <% gradeOptions.forEach(g => { %>
+          <option value="<%= g %>" <%= values.grade === g ? 'selected' : '' %>><%= g %></option>
+        <% }) %>
+      </select>
+    </label>
+    <button>Upload</button>
+  </form>
+</div>
+<%- include('partials/footer') %>

@@ -1,0 +1,17 @@
+syntax = "proto3";
+package enrollment.enroll;
+option java_multiple_files = true;
+option java_package = "enrollment.enroll";
+
+service EnrollmentService {
+  rpc EnrollStudent(EnrollRequest) returns (EnrollResponse);
+  rpc ListMyEnrollments(ListMyEnrollmentsRequest) returns (ListMyEnrollmentsResponse);
+}
+message EnrollmentRecord {
+  int64 id = 1; string course_code = 2; string section = 3;
+  string course_name = 4; string schedule = 5; int64 enrolled_at = 6;
+}
+message EnrollRequest { string course_code = 1; string section = 2; }   // student = JWT sub
+message EnrollResponse { EnrollmentRecord record = 1; }
+message ListMyEnrollmentsRequest {}
+message ListMyEnrollmentsResponse { repeated EnrollmentRecord records = 1; }

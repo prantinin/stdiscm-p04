@@ -1,0 +1,83 @@
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  margin: 0;
+  background: #f6f7f9;
+  color: #222;
+  line-height: 1.5;
+}
+
+/* navbar */
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 24px;
+  background: #1f3a5f;
+  color: #fff;
+}
+nav a { color: #fff; text-decoration: none; }
+nav a:hover { text-decoration: underline; }
+nav .brand { font-weight: 700; margin-right: 8px; }
+nav .spacer { flex: 1; }
+nav .who { font-size: 0.9rem; opacity: 0.9; }
+nav form { margin: 0; }
+
+main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+h1 { margin-top: 0; }
+.hint { color: #555; font-size: 0.95rem; }
+
+/* cards (login, forms, error) */
+.card {
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  border-radius: 8px;
+  padding: 24px;
+}
+.card.narrow { max-width: 420px; margin: 0 auto; }
+
+/* tables */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 10px 12px; border-bottom: 1px solid #e2e5ea; text-align: left; }
+th { background: #eef1f5; font-weight: 600; }
+tr:hover td { background: #fafbfc; }
+td form { margin: 0; }
+
+/* forms */
+form label { display: block; margin: 12px 0; font-weight: 500; }
+input, select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid #c5cad3;
+  border-radius: 6px;
+  font: inherit;
+}
+input:focus, select:focus { outline: 2px solid #8fb1e0; border-color: #1f3a5f; }
+
+button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #1f3a5f;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+button:hover { background: #17304f; }
+button.secondary { background: transparent; border: 1px solid #fff; padding: 4px 12px; }
+button.secondary:hover { background: rgba(255, 255, 255, 0.15); }
+
+/* messages */
+.msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
+.msg.error { background: #fde2e2; color: #8a1c1c; border: 1px solid #f5b5b5; }
+.msg.success { background: #ddf4e1; color: #1d6b2c; border: 1px solid #a9dfb3; }
+
+/* status badges */
+.badge { padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; }
+.badge.open { background: #ddf4e1; color: #1d6b2c; }
+.badge.closed { background: #eee; color: #666; }

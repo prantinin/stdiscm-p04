@@ -1,0 +1,10 @@
+syntax = "proto3";
+package enrollment.gradesupload;
+option java_multiple_files = true;
+option java_package = "enrollment.gradesupload";
+
+service GradeUploadService {
+  rpc UploadGrade(UploadGradeRequest) returns (UploadGradeResponse);
+}
+message UploadGradeRequest { string student_username = 1; string course_code = 2; string term = 3; string grade = 4; }
+message UploadGradeResponse { string student_username = 1; string course_code = 2; string term = 3; string grade = 4; int64 uploaded_at = 5; }

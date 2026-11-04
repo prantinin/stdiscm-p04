@@ -1,0 +1,14 @@
+syntax = "proto3";
+package enrollment.gradesview;
+option java_multiple_files = true;
+option java_package = "enrollment.gradesview";
+
+service GradesViewService {
+  rpc GetMyGrades(GetMyGradesRequest) returns (GetMyGradesResponse);
+}
+message GradeRecord {
+  string student_username = 1; string course_code = 2; string term = 3;
+  string grade = 4; string uploaded_by = 5; int64 uploaded_at = 6;
+}
+message GetMyGradesRequest {}                              // student = JWT sub
+message GetMyGradesResponse { repeated GradeRecord grades = 1; }

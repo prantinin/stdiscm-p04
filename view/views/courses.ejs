@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+<h1>Courses</h1>
+<% if (!courses.length) { %>
+  <p>No courses found.</p>
+<% } else { %>
+<div class="table-wrap">
+<table>
+  <tr>
+    <th>Code</th><th>Name</th><th>Section</th><th>Schedule</th>
+    <th>Enrolled</th><th>Status</th><th>Faculty</th>
+    <% if (user.role === 'STUDENT') { %><th></th><% } %>
+  </tr>
+  <% courses.forEach(c => { %>
+  <tr>
+    <td><%= c.code %></td>
+    <td><%= c.name %></td>
+    <td><%= c.section %></td>
+    <td><%= c.schedule %></td>
+    <td><%= c.enrolled %>/<%= c.capacity %></td>
+    <td><span class="badge <%= c.status === 'OPEN' ? 'open' : 'closed' %>"><%= c.status %></span></td>
+    <td><%= c.faculty_name %></td>
+    <% if (user.role === 'STUDENT') { %>
+    <td>
+      <form method="post" action="/enroll">
+        <input type="hidden" name="course_code" value="<%= c.code %>">
+        <input type="hidden" name="section" value="<%= c.section %>">
+        <button>Enroll</button>
+      </form>
+    </td>
+    <% } %>
+  </tr>
+  <% }) %>
+</table>
+</div>
+<% } %>
+<%- include('partials/footer') %>
