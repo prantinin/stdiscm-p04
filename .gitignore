@@ -2,3 +2,5 @@ node_modules/
 keys/
 .env
 target/
+.DS_Store
+**/.DS_Store
