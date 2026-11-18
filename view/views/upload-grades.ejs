@@ -1,24 +1,136 @@
 <%- include('partials/header') %>
 <div class="card narrow">
   <h1>Upload a Grade</h1>
-  <form method="post" action="/grades/upload">
-    <label>Student ID
-      <input name="student_username" maxlength="32" value="<%= values.student_username || '' %>" required>
+  <form method="post" action="/grades/upload" id="grade-upload-form"
+        data-selected-course="<%= (values && values.course_code) || '' %>"
+        data-academic-year="<%= (values && values.academic_year) || '' %>"
+        data-older-year="<%= (values && values.older_year) || '' %>"
+        data-term-number="<%= (values && values.term_number) || '' %>">
+    <label for="student_username">Student ID / username
+      <input id="student_username" name="student_username" type="text" maxlength="32"
+             value="<%= (values && values.student_username) || '' %>" autocomplete="off" required>
     </label>
-    <label>Course code
-      <input name="course_code" maxlength="16" value="<%= values.course_code || '' %>" required>
-    </label>
-    <label>Term (e.g. 2025-T1)
-      <input name="term" maxlength="16" placeholder="2025-T1" value="<%= values.term || '' %>" required>
-    </label>
-    <label>Grade
-      <select name="grade">
-        <% gradeOptions.forEach(g => { %>
-          <option value="<%= g %>" <%= values.grade === g ? 'selected' : '' %>><%= g %></option>
-        <% }) %>
-      </select>
-    </label>
-    <button>Upload</button>
+
+    <label for="course_code">Course</label>
+    <select id="course_code" name="course_code" required>
+      <option value="">Select a course…</option>
+    </select>
+    <p class="hint" id="course-status" aria-live="polite">Loading courses…</p>
+
+    <label for="academic_year">Academic year</label>
+    <select id="academic_year" name="academic_year" required>
+      <option value="">Select an academic year…</option>
+    </select>
+    <div id="older-year-control" hidden>
+      <label for="older_year">Earlier academic year</label>
+      <input id="older_year" name="older_year" type="number" min="1" max="2019" step="1"
+             value="<%= (values && values.older_year) || '' %>" placeholder="e.g. 2015" disabled>
+      <p class="hint">Enter a year before 2020.</p>
+    </div>
+
+    <label for="term_number">Term</label>
+    <select id="term_number" name="term_number" required>
+      <option value="">Select a term…</option>
+      <% [1, 2, 3].forEach(term => { %>
+        <option value="<%= term %>" <%= values && String(values.term_number) === String(term) ? 'selected' : '' %>>Term <%= term %></option>
+      <% }) %>
+    </select>
+
+    <label for="grade">Grade</label>
+    <select id="grade" name="grade" required>
+      <% gradeOptions.forEach(g => { %>
+        <option value="<%= g %>" <%= values && values.grade === g ? 'selected' : '' %>><%= g %></option>
+      <% }) %>
+    </select>
+    <button id="upload-button">Upload</button>
   </form>
 </div>
+
+<script>
+(() => {
+  const form = document.getElementById('grade-upload-form');
+  const courseSelect = document.getElementById('course_code');
+  const courseStatus = document.getElementById('course-status');
+  const yearSelect = document.getElementById('academic_year');
+  const olderControl = document.getElementById('older-year-control');
+  const olderYearInput = document.getElementById('older_year');
+  const termSelect = document.getElementById('term_number');
+  const savedCourse = form.dataset.selectedCourse;
+  const savedYear = form.dataset.academicYear;
+  const savedOlderYear = form.dataset.olderYear;
+  const savedTerm = form.dataset.termNumber;
+
+  function setupYears() {
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear; year >= 2020; year -= 1) {
+      const option = document.createElement('option');
+      option.value = String(year);
+      option.textContent = String(year);
+      yearSelect.appendChild(option);
+    }
+    const olderOption = document.createElement('option');
+    olderOption.value = 'older';
+    olderOption.textContent = 'Older Year…';
+    yearSelect.appendChild(olderOption);
+
+    if (savedYear === 'older' || (/^\d{4}$/.test(savedYear) && Number(savedYear) < 2020)) {
+      yearSelect.value = 'older';
+      if (!savedOlderYear && /^\d{4}$/.test(savedYear)) olderYearInput.value = savedYear;
+    } else if (savedYear) {
+      yearSelect.value = savedYear;
+    }
+    if (savedTerm) termSelect.value = savedTerm;
+    updateOlderYearControl();
+  }
+
+  function updateOlderYearControl() {
+    const isOlder = yearSelect.value === 'older';
+    olderControl.hidden = !isOlder;
+    olderYearInput.disabled = !isOlder;
+    olderYearInput.required = isOlder;
+    if (!isOlder) olderYearInput.setCustomValidity('');
+  }
+
+  yearSelect.addEventListener('change', updateOlderYearControl);
+  olderYearInput.addEventListener('input', () => {
+    const value = olderYearInput.value;
+    if (!value) return olderYearInput.setCustomValidity('Choose an earlier year.');
+    const year = Number(value);
+    olderYearInput.setCustomValidity(Number.isInteger(year) && year >= 1 && year < 2020
+      ? '' : 'Enter a year from 1 through 2019.');
+  });
+
+  async function loadCourses() {
+    courseSelect.disabled = true;
+    courseStatus.textContent = 'Loading courses…';
+    try {
+      const response = await fetch('/grades/upload/courses');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to load courses.');
+      const courses = data.courses || [];
+      for (const course of courses) {
+        if (!course || !course.code) continue;
+        const option = document.createElement('option');
+        option.value = course.code;
+        option.textContent = `${course.code} — ${course.name || 'Course'}${course.section ? ` (${course.section})` : ''}`;
+        courseSelect.appendChild(option);
+      }
+      if (courseSelect.options.length === 1) {
+        courseStatus.textContent = 'No courses are currently available.';
+        return;
+      }
+      courseSelect.disabled = false;
+      courseStatus.textContent = '';
+      if (savedCourse && Array.from(courseSelect.options).some(option => option.value === savedCourse)) {
+        courseSelect.value = savedCourse;
+      }
+    } catch (error) {
+      courseStatus.textContent = error.message || 'Course list is currently unavailable. Please try again later.';
+    }
+  }
+
+  setupYears();
+  loadCourses();
+})();
+</script>
 <%- include('partials/footer') %>
