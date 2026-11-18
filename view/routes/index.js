@@ -19,6 +19,7 @@ router.post('/enroll', requireLogin, requireRole('STUDENT'), enrollC.enroll);
 router.get('/enrollments', requireLogin, requireRole('STUDENT'), enrollC.list);
 
 router.get('/grades', requireLogin, requireRole('STUDENT'), gradesC.myGrades);
+router.get('/grades/upload/courses', requireLogin, requireRole('FACULTY'), gradesC.uploadCourses);
 router.get('/grades/upload', requireLogin, requireRole('FACULTY'), gradesC.showUpload);
 router.post('/grades/upload', requireLogin, requireRole('FACULTY'), gradesC.upload);
 

@@ -14,5 +14,8 @@
     "ejs": "^7.0.2",
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3"
+  },
+  "allowScripts": {
+    "protobufjs@7.6.6": true
   }
 }
