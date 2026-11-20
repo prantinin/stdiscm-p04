@@ -1,8 +1,9 @@
 package edu.dlsu.enrollment.enroll;
 
 import com.zaxxer.hikari.HikariDataSource;
-import edu.dlsu.enrollment.devsecurity.AuthUser;
-import edu.dlsu.enrollment.devsecurity.DevAuthInterceptor;
+import edu.dlsu.enrollment.security.AuthContext;
+import edu.dlsu.enrollment.security.AuthUser;
+import edu.dlsu.enrollment.security.Role;
 import enrollment.enroll.*;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -63,5 +64,5 @@ public final class EnrollmentServiceImpl extends EnrollmentServiceGrpc.Enrollmen
   private int countEnrollments(Connection conn,long courseId) throws SQLException { try(PreparedStatement ps=conn.prepareStatement("SELECT COUNT(*) FROM enrollments WHERE course_id=?")){ps.setLong(1,courseId);try(ResultSet rs=ps.executeQuery()){rs.next();return rs.getInt(1);}} }
   private boolean alreadyEnrolled(Connection conn,String student,long courseId) throws SQLException { try(PreparedStatement ps=conn.prepareStatement("SELECT 1 FROM enrollments WHERE student_username=? AND course_id=?")){ps.setString(1,student);ps.setLong(2,courseId);try(ResultSet rs=ps.executeQuery()){return rs.next();}} }
   private EnrollmentRecord record(ResultSet rs) throws SQLException { return EnrollmentRecord.newBuilder().setId(rs.getLong("id")).setCourseCode(rs.getString("code")).setSection(rs.getString("section")).setCourseName(rs.getString("name")).setSchedule(rs.getString("schedule")).setEnrolledAt(rs.getTimestamp("enrolled_at").toInstant().getEpochSecond()).build(); }
-  private AuthUser student() { AuthUser user=DevAuthInterceptor.USER.get(); if(user==null) throw Status.UNAUTHENTICATED.withDescription("Missing or invalid token").asRuntimeException(); if(!"STUDENT".equals(user.role())) throw Status.PERMISSION_DENIED.withDescription("Student role required").asRuntimeException(); return user; }
+  private AuthUser student() { AuthContext.requireRole(Role.STUDENT); return AuthContext.current(); }
 }

@@ -1,0 +1,165 @@
+name: stdiscm-p04
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-password}
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  auth-node:
+    build:
+      context: ..
+      dockerfile: java/auth-service/Dockerfile
+    environment:
+      GRPC_PORT: ${AUTH_GRPC_PORT:-50051}
+      DB_URL: jdbc:mysql://${DB_HOST:-mysql}:${DB_PORT:-3306}/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: ${AUTH_DB_USER:-auth_user}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_password}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      JWT_PRIVATE_KEY_PATH: ${JWT_PRIVATE_KEY_PATH:-/run/keys/private.pem}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/keys/public.pem}
+    ports:
+      - "${AUTH_HOST_PORT:-50051}:${AUTH_GRPC_PORT:-50051}"
+    volumes:
+      - ../keys/private.pem:/run/keys/private.pem:ro
+      - ../keys/public.pem:/run/keys/public.pem:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  catalog-node:
+    build:
+      context: ..
+      dockerfile: java/catalog-service/Dockerfile
+    environment:
+      GRPC_PORT: ${CATALOG_GRPC_PORT:-50052}
+      DB_URL: jdbc:mysql://${DB_HOST:-mysql}:${DB_PORT:-3306}/course_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: ${CATALOG_DB_USER:-catalog_user}
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD:-catalog_password}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/keys/public.pem}
+    ports:
+      - "${CATALOG_HOST_PORT:-50052}:${CATALOG_GRPC_PORT:-50052}"
+    volumes:
+      - ../keys/public.pem:/run/keys/public.pem:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  enrollment-node:
+    build:
+      context: ..
+      dockerfile: java/enrollment-service/Dockerfile
+    environment:
+      GRPC_PORT: ${ENROLLMENT_GRPC_PORT:-50053}
+      DB_URL: jdbc:mysql://${DB_HOST:-mysql}:${DB_PORT:-3306}/course_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: ${ENROLLMENT_DB_USER:-enroll_user}
+      DB_PASSWORD: ${ENROLLMENT_DB_PASSWORD:-enrollment_password}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/keys/public.pem}
+    ports:
+      - "${ENROLLMENT_HOST_PORT:-50053}:${ENROLLMENT_GRPC_PORT:-50053}"
+    volumes:
+      - ../keys/public.pem:/run/keys/public.pem:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  grades-view-node:
+    build:
+      context: ..
+      dockerfile: java/grades-view-service/Dockerfile
+    environment:
+      GRPC_PORT: ${GRADES_VIEW_GRPC_PORT:-50054}
+      DB_URL: jdbc:mysql://${DB_HOST:-mysql}:${DB_PORT:-3306}/grades_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: ${GRADES_VIEW_DB_USER:-grades_view_user}
+      DB_PASSWORD: ${GRADES_VIEW_DB_PASSWORD:-grades_view_password}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/keys/public.pem}
+    ports:
+      - "${GRADES_VIEW_HOST_PORT:-50054}:${GRADES_VIEW_GRPC_PORT:-50054}"
+    volumes:
+      - ../keys/public.pem:/run/keys/public.pem:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  grades-upload-node:
+    build:
+      context: ..
+      dockerfile: java/grades-upload-service/Dockerfile
+    environment:
+      GRPC_PORT: ${GRADES_UPLOAD_GRPC_PORT:-50055}
+      DB_URL: jdbc:mysql://${DB_HOST:-mysql}:${DB_PORT:-3306}/grades_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: ${GRADES_UPLOAD_DB_USER:-grades_upload_user}
+      DB_PASSWORD: ${GRADES_UPLOAD_DB_PASSWORD:-grades_upload_password}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/keys/public.pem}
+    ports:
+      - "${GRADES_UPLOAD_HOST_PORT:-50055}:${GRADES_UPLOAD_GRPC_PORT:-50055}"
+    volumes:
+      - ../keys/public.pem:/run/keys/public.pem:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  view-node:
+    build:
+      context: ..
+      dockerfile: view/Dockerfile
+    environment:
+      AUTH_ADDR: auth-node:50051
+      CATALOG_ADDR: catalog-node:50052
+      ENROLLMENT_ADDR: enrollment-node:50053
+      GRADES_VIEW_ADDR: grades-view-node:50054
+      GRADES_UPLOAD_ADDR: grades-upload-node:50055
+      JWT_PUBLIC_KEY_PATH: /run/keys/public.pem
+      GRPC_TIMEOUT_MS: 2000
+      SESSION_COOKIE_NAME: enroll_token
+      USE_MOCKS: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../keys/public.pem:/run/keys/public.pem:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge

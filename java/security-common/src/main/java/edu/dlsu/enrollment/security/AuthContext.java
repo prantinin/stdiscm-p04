@@ -30,4 +30,11 @@ public final class AuthContext {
         }
         user.requireRole(role);
     }
+
+    public static void requireRole(Role role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Required role is required");
+        }
+        requireRole(role.name());
+    }
 }

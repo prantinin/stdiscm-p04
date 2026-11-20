@@ -1,5 +1,4 @@
--- Owned by Member 3. Member 2 should mount this in MySQL's /docker-entrypoint-initdb.d.
-CREATE DATABASE IF NOT EXISTS course_db;
+-- Table-level grants follow table creation; account/database creation is in 00-users-and-dbs.sql.
 USE course_db;
 CREATE TABLE courses (
   id BIGINT AUTO_INCREMENT PRIMARY KEY, code VARCHAR(16) NOT NULL, name VARCHAR(100) NOT NULL,
@@ -12,13 +11,10 @@ CREATE TABLE enrollments (
   enrolled_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (course_id) REFERENCES courses(id), UNIQUE (student_username, course_id)
 );
-CREATE USER IF NOT EXISTS 'catalog_user'@'%' IDENTIFIED BY 'catalog_password';
-CREATE USER IF NOT EXISTS 'enrollment_user'@'%' IDENTIFIED BY 'enrollment_password';
 GRANT SELECT ON course_db.courses TO 'catalog_user'@'%';
 GRANT SELECT ON course_db.enrollments TO 'catalog_user'@'%';
-GRANT SELECT ON course_db.courses TO 'enrollment_user'@'%';
-GRANT SELECT, INSERT ON course_db.enrollments TO 'enrollment_user'@'%';
-FLUSH PRIVILEGES;
+GRANT SELECT ON course_db.courses TO 'enroll_user'@'%';
+GRANT SELECT, INSERT ON course_db.enrollments TO 'enroll_user'@'%';
 INSERT INTO courses (code,name,section,schedule,capacity,status,faculty_name) VALUES
 ('CSADPRG','Advanced Programming','S11','MW 09:15-10:45',40,'OPEN','Dr. Elena Cruz'),
 ('STDISCM','Distributed Computing','S12','TH 13:00-16:00',1,'OPEN','Dr. Miguel Reyes'),
