@@ -2,7 +2,8 @@ package edu.dlsu.enrollment.catalog;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import edu.dlsu.enrollment.devsecurity.DevAuthInterceptor;
+import edu.dlsu.enrollment.security.AuthInterceptor;
+import edu.dlsu.enrollment.security.JwtVerifier;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptors;
@@ -12,7 +13,7 @@ public final class CatalogServer {
   public static void main(String[] args) throws Exception {
     HikariDataSource ds = dataSource();
     Server server = ServerBuilder.forPort(Integer.parseInt(env("GRPC_PORT", "50052")))
-        .addService(ServerInterceptors.intercept(new CatalogServiceImpl(ds), new DevAuthInterceptor())).build().start();
+        .addService(ServerInterceptors.intercept(new CatalogServiceImpl(ds), new AuthInterceptor(new JwtVerifier()))).build().start();
     Runtime.getRuntime().addShutdownHook(new Thread(() -> { server.shutdown(); ds.close(); }));
     System.out.println("Catalog gRPC server listening on " + server.getPort());
     server.awaitTermination();

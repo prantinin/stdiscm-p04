@@ -9,16 +9,13 @@
 
 Neither service calls the other service. Both read the same MySQL database directly, as required for node independence.
 
-## Development-only security stub - required follow-up
+## Authentication
 
-`java/dev-security-stub` is deliberately temporary. It reads the claims from a JWT payload but **does not verify its signature**. It exists only so these two nodes can integrate with the View while Member 2's `security-common` module is unavailable. Do not treat this as secure or deploy it.
-
-When Member 2 finishes, replace `dev-security-stub` in both service POMs with Member 2's `security-common` artifact, remove `java/dev-security-stub`, and change these references:
-
-1. Replace `DevAuthInterceptor` on each server with Member 2's `AuthInterceptor`.
-2. Replace `DevAuthInterceptor.USER.get()` with `AuthContext.current()`.
-3. Preserve the current role rules: Catalog accepts either authenticated role; both Enrollment RPCs require `STUDENT`.
-4. Run the full Maven test and Docker fault-tolerance checklist again. A missing/invalid/tampered token must then return `UNAUTHENTICATED` based on real RS256 verification.
+Both services depend on `security-common` and verify RS256 bearer tokens with
+`JWT_PUBLIC_KEY_PATH`. Catalog accepts either authenticated role; both
+Enrollment RPCs require `STUDENT` through `AuthContext`. The development-only
+`dev-security-stub` is still used by the Grades services and must not be used
+for signature verification.
 
 ## Configuration
 

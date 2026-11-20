@@ -1,7 +1,7 @@
 package edu.dlsu.enrollment.catalog;
 
 import com.zaxxer.hikari.HikariDataSource;
-import edu.dlsu.enrollment.devsecurity.DevAuthInterceptor;
+import edu.dlsu.enrollment.security.AuthContext;
 import enrollment.catalog.*;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
@@ -12,7 +12,7 @@ public final class CatalogServiceImpl extends CatalogServiceGrpc.CatalogServiceI
   public CatalogServiceImpl(HikariDataSource dataSource) { this.dataSource = dataSource; }
 
   @Override public void listCourses(ListCoursesRequest request, StreamObserver<ListCoursesResponse> observer) {
-    if (DevAuthInterceptor.USER.get() == null) { observer.onError(Status.UNAUTHENTICATED.withDescription("Missing or invalid token").asRuntimeException()); return; }
+    if (!AuthContext.isAuthenticated()) { observer.onError(Status.UNAUTHENTICATED.withDescription("Missing or invalid token").asRuntimeException()); return; }
     String sql = "SELECT c.id,c.code,c.name,c.section,c.schedule,c.capacity,c.status,c.faculty_name,COUNT(e.id) enrolled " +
         "FROM courses c LEFT JOIN enrollments e ON e.course_id=c.id " + (request.getOpenOnly() ? "WHERE c.status='OPEN' " : "") +
         "GROUP BY c.id,c.code,c.name,c.section,c.schedule,c.capacity,c.status,c.faculty_name ORDER BY c.code,c.section";

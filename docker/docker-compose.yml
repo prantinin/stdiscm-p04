@@ -18,6 +18,7 @@ services:
       start_period: 20s
     networks:
       - app-network
+    restart: unless-stopped
 
   auth-node:
     build:
@@ -41,6 +42,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
   catalog-node:
     build:
@@ -62,6 +64,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
   enrollment-node:
     build:
@@ -83,6 +86,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
   grades-view-node:
     build:
@@ -104,6 +108,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
   grades-upload-node:
     build:
@@ -125,27 +130,24 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
   view-node:
     build:
       context: ..
       dockerfile: view/Dockerfile
     environment:
-      PORT: 8080
-      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-enroll_token}
-      GRPC_TIMEOUT_MS: ${GRPC_TIMEOUT_MS:-2000}
-      JWT_PUBLIC_KEY_PATH: ${JWT_PUBLIC_KEY_PATH:-/run/keys/public.pem}
-      PROTO_DIR: /app/proto
-      AUTH_ADDR: auth-node:${AUTH_GRPC_PORT:-50051}
-      CATALOG_ADDR: catalog-node:${CATALOG_GRPC_PORT:-50052}
-      ENROLLMENT_ADDR: enrollment-node:${ENROLLMENT_GRPC_PORT:-50053}
-      GRADES_VIEW_ADDR: grades-view-node:${GRADES_VIEW_GRPC_PORT:-50054}
-      GRADES_UPLOAD_ADDR: grades-upload-node:${GRADES_UPLOAD_GRPC_PORT:-50055}
-      USE_MOCKS: ${USE_MOCKS:-false}
-      MOCK_SERVICES: ${MOCK_SERVICES:-}
-      DEAD_NODES: ${DEAD_NODES:-}
+      AUTH_ADDR: auth-node:50051
+      CATALOG_ADDR: catalog-node:50052
+      ENROLLMENT_ADDR: enrollment-node:50053
+      GRADES_VIEW_ADDR: grades-view-node:50054
+      GRADES_UPLOAD_ADDR: grades-upload-node:50055
+      JWT_PUBLIC_KEY_PATH: /run/keys/public.pem
+      GRPC_TIMEOUT_MS: 2000
+      SESSION_COOKIE_NAME: enroll_token
+      USE_MOCKS: "false"
     ports:
-      - "${VIEW_HOST_PORT:-8080}:8080"
+      - "8080:8080"
     volumes:
       - ../keys/public.pem:/run/keys/public.pem:ro
     depends_on:
@@ -153,6 +155,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
 volumes:
   mysql-data:
