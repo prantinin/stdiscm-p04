@@ -368,6 +368,33 @@ docker compose --env-file .env -f docker/docker-compose.yml down -v
 
 ---
 
+# Viewing DB contents
+
+## 1. Enter the container  
+```
+dc exec mysql bash
+```
+
+## 2. Find your database name  
+replace `yourdb` with the name of the database you want to access
+
+```
+DB=yourdb
+for t in $(mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e "SHOW TABLES FROM $DB" 2>/dev/null); do
+  echo ""; echo "=== $t ==="
+  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -t -e "SELECT * FROM $DB.$t" 2>/dev/null
+done
+```
+
+## 3. Leave the container
+
+```
+exit
+```
+
+---
+
+
 # Troubleshooting
 
 | Problem | Possible Solution |
