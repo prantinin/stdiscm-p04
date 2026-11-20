@@ -19,7 +19,7 @@ public final class EnrollmentServer {
   static HikariDataSource dataSource() {
     HikariConfig c = new HikariConfig();
     c.setJdbcUrl(env("DB_URL", "jdbc:mysql://localhost:3306/course_db"));
-    c.setUsername(env("DB_USER", "enrollment_user")); c.setPassword(env("DB_PASSWORD", "enrollment_password"));
+    c.setUsername(env("DB_USER", "enroll_user")); c.setPassword(env("DB_PASSWORD", "enrollment_password"));
     c.setMaximumPoolSize(Integer.parseInt(env("DB_POOL_SIZE", "5"))); c.setMinimumIdle(1);
     c.setPoolName("enrollment-pool"); return new HikariDataSource(c);
   }

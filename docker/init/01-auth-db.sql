@@ -1,4 +1,3 @@
-CREATE DATABASE IF NOT EXISTS auth_db;
 USE auth_db;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -13,10 +12,8 @@ CREATE TABLE IF NOT EXISTS revoked_tokens (
   expires_at DATETIME NOT NULL
 );
 
-CREATE USER IF NOT EXISTS 'auth_user'@'%' IDENTIFIED BY 'auth_password';
 GRANT SELECT ON auth_db.users TO 'auth_user'@'%';
 GRANT SELECT, INSERT, UPDATE ON auth_db.revoked_tokens TO 'auth_user'@'%';
-FLUSH PRIVILEGES;
 
 -- Demo password for every account: password123. Each stored value is a distinct BCrypt hash.
 -- Student IDs align with the course/grades data; faculty IDs align with the demo frontend.

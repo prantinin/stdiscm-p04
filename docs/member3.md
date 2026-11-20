@@ -5,7 +5,7 @@
 - `catalog-service` is a read-only gRPC node on port 50052. It lists all or only open courses, including a database-derived enrollment count.
 - `enrollment-service` is a gRPC node on port 50053. A student can enroll by course code and section, or list only their own enrollments.
 - The enrollment flow uses a single database transaction and locks the course row before checking capacity. The database also prevents duplicate enrollment with a unique key.
-- `docker/init/02-course-db.sql` creates and seeds `course_db` and the two least-privilege accounts. It is intended for Member 2 to mount into MySQL initialization.
+- `docker/init/00-users-and-dbs.sql` creates the databases and shared DB accounts. `docker/init/02-course-db.sql` creates and seeds `course_db`, then applies its table-level grants.
 
 Neither service calls the other service. Both read the same MySQL database directly, as required for node independence.
 
@@ -26,11 +26,11 @@ When Member 2 finishes, replace `dev-security-stub` in both service POMs with Me
 | --- | --- | --- |
 | `GRPC_PORT` | `50052` | `50053` |
 | `DB_URL` | `jdbc:mysql://localhost:3306/course_db` | same |
-| `DB_USER` | `catalog_user` | `enrollment_user` |
+| `DB_USER` | `catalog_user` | `enroll_user` |
 | `DB_PASSWORD` | `catalog_password` | `enrollment_password` |
 | `DB_POOL_SIZE` | `5` | `5` |
 
-The production Compose configuration should use `mysql:3306` in `DB_URL`, not `localhost`, and should mount `docker/init/02-course-db.sql` into `/docker-entrypoint-initdb.d/02-course-db.sql`.
+The Compose configuration uses `mysql:3306` in `DB_URL`, not `localhost`, and mounts the full `docker/init/` directory into `/docker-entrypoint-initdb.d/`.
 
 ## Build and run
 
@@ -40,7 +40,7 @@ From the repository root:
 mvn -f java/pom.xml package
 DB_URL=jdbc:mysql://localhost:3306/course_db DB_USER=catalog_user DB_PASSWORD=catalog_password \
   java -jar java/catalog-service/target/catalog-service-1.0.0-SNAPSHOT.jar
-DB_URL=jdbc:mysql://localhost:3306/course_db DB_USER=enrollment_user DB_PASSWORD=enrollment_password \
+DB_URL=jdbc:mysql://localhost:3306/course_db DB_USER=enroll_user DB_PASSWORD=enrollment_password \
   java -jar java/enrollment-service/target/enrollment-service-1.0.0-SNAPSHOT.jar
 ```
 

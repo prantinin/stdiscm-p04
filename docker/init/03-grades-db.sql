@@ -1,5 +1,4 @@
--- Owned by Member 4. Mount after the auth and course database initialization scripts.
-CREATE DATABASE IF NOT EXISTS grades_db;
+-- Table-level grants follow table creation; account/database creation is in 00-users-and-dbs.sql.
 USE grades_db;
 CREATE TABLE IF NOT EXISTS grades (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -12,11 +11,8 @@ CREATE TABLE IF NOT EXISTS grades (
   UNIQUE KEY uq_student_course_term (student_username, course_code, term)
 );
 
-CREATE USER IF NOT EXISTS 'grades_view_user'@'%' IDENTIFIED BY 'grades_view_password';
-CREATE USER IF NOT EXISTS 'grades_upload_user'@'%' IDENTIFIED BY 'grades_upload_password';
 GRANT SELECT ON grades_db.grades TO 'grades_view_user'@'%';
 GRANT SELECT, INSERT, UPDATE ON grades_db.grades TO 'grades_upload_user'@'%';
-FLUSH PRIVILEGES;
 
 INSERT INTO grades (student_username, course_code, term, grade, uploaded_by) VALUES
 ('12012345','CCPROG3','2025-T1','3.5','fac001'),
