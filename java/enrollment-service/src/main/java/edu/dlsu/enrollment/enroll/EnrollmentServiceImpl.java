@@ -43,9 +43,16 @@ public final class EnrollmentServiceImpl extends EnrollmentServiceGrpc.Enrollmen
         try (ResultSet rs=course.executeQuery()) {
           if (!rs.next()) throw Status.NOT_FOUND.withDescription("Course not found").asRuntimeException();
           long courseId=rs.getLong("id");
+          String courseCode=rs.getString("code");
+          String courseSection=rs.getString("section");
+          String courseName=rs.getString("name");
+          String courseSchedule=rs.getString("schedule");
+          String courseStatus=rs.getString("status");
+          int capacity=rs.getInt("capacity");
+
           if (alreadyEnrolled(conn, student, courseId))
             throw Status.ALREADY_EXISTS.withDescription("You are already enrolled in this course").asRuntimeException();
-          if (!"OPEN".equals(rs.getString("status")) || countEnrollments(conn,courseId) >= rs.getInt("capacity"))
+          if (!"OPEN".equals(courseStatus) || countEnrollments(conn,courseId) >= capacity)
             throw Status.FAILED_PRECONDITION.withDescription("Course is full or closed").asRuntimeException();
           long id;
           try (PreparedStatement insert=conn.prepareStatement("INSERT INTO enrollments(student_username,course_id) VALUES (?,?)", Statement.RETURN_GENERATED_KEYS)) {
@@ -53,13 +60,20 @@ public final class EnrollmentServiceImpl extends EnrollmentServiceGrpc.Enrollmen
             try(ResultSet keys=insert.getGeneratedKeys()) { if(!keys.next()) throw new SQLException("Enrollment id was not generated"); id=keys.getLong(1); }
           }
           conn.commit();
-          return EnrollmentRecord.newBuilder().setId(id).setCourseCode(rs.getString("code")).setSection(rs.getString("section"))
-              .setCourseName(rs.getString("name")).setSchedule(rs.getString("schedule")).setEnrolledAt(System.currentTimeMillis()/1000).build();
+          return EnrollmentRecord.newBuilder().setId(id).setCourseCode(courseCode).setSection(courseSection)
+              .setCourseName(courseName).setSchedule(courseSchedule).setEnrolledAt(System.currentTimeMillis()/1000).build();
         }
       } catch (StatusRuntimeException e) { conn.rollback(); throw e; }
         catch (SQLIntegrityConstraintViolationException e) { conn.rollback(); throw Status.ALREADY_EXISTS.withDescription("You are already enrolled in this course").asRuntimeException(); }
-        catch (SQLException e) { conn.rollback(); throw Status.INTERNAL.withDescription("Unable to enroll").withCause(e).asRuntimeException(); }
-    } catch (SQLException e) { throw Status.INTERNAL.withDescription("Unable to enroll").withCause(e).asRuntimeException(); }
+        catch (SQLException e) {
+          e.printStackTrace();
+          conn.rollback();
+          throw Status.INTERNAL.withDescription("Unable to enroll: " + e.getMessage()).withCause(e).asRuntimeException();
+        }
+    } catch (SQLException e) {
+      e.printStackTrace();
+      throw Status.INTERNAL.withDescription("Unable to enroll: " + e.getMessage()).withCause(e).asRuntimeException();
+    }
   }
   private int countEnrollments(Connection conn,long courseId) throws SQLException { try(PreparedStatement ps=conn.prepareStatement("SELECT COUNT(*) FROM enrollments WHERE course_id=?")){ps.setLong(1,courseId);try(ResultSet rs=ps.executeQuery()){rs.next();return rs.getInt(1);}} }
   private boolean alreadyEnrolled(Connection conn,String student,long courseId) throws SQLException { try(PreparedStatement ps=conn.prepareStatement("SELECT 1 FROM enrollments WHERE student_username=? AND course_id=?")){ps.setString(1,student);ps.setLong(2,courseId);try(ResultSet rs=ps.executeQuery()){return rs.next();}} }

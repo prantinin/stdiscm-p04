@@ -13,7 +13,7 @@ CREATE TABLE enrollments (
 );
 GRANT SELECT ON course_db.courses TO 'catalog_user'@'%';
 GRANT SELECT ON course_db.enrollments TO 'catalog_user'@'%';
-GRANT SELECT ON course_db.courses TO 'enroll_user'@'%';
+GRANT SELECT, UPDATE ON course_db.courses TO 'enroll_user'@'%';
 GRANT SELECT, INSERT ON course_db.enrollments TO 'enroll_user'@'%';
 INSERT INTO courses (code,name,section,schedule,capacity,status,faculty_name) VALUES
 ('CSADPRG','Advanced Programming','S11','MW 09:15-10:45',40,'OPEN','Dr. Elena Cruz'),
