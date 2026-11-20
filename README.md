@@ -1,189 +1,174 @@
-# STDISCM Distributed Enrollment System: Running the App
+# STDISCM Distributed Enrollment System
 
-## Step 1: Generate the JWT keys (first time only)
+A distributed enrollment system consisting of a web-based frontend, five backend services, and a MySQL database. The system demonstrates distributed service communication, fault isolation, and fault recovery.
 
-`keys/` and `view/.env` are gitignored, so **you won't have them after cloning**. From the repo root, in Git Bash:
+## System Architecture
 
+| Component | Description |
+|---|---|
+| View | Web GUI and frontend |
+| Auth Service | Handles user authentication and login |
+| Catalog Service | Displays available courses |
+| Enrollment Service | Handles student course enrollment |
+| Grades View Service | Retrieves student grades |
+| Grades Upload Service | Handles faculty grade uploads |
+| MySQL | Stores application data |
+
+---
+
+# Requirements
+
+Before running the application, make sure you have installed:
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Git for Windows](https://git-scm.com/)
+
+You will also need the project repository and its configuration files.
+
+---
+
+# Running the Application
+
+## Step 1: Start Docker Desktop
+
+1. Open Docker Desktop.
+2. Wait until Docker has finished starting.
+3. Open a new PowerShell terminal.
+4. Verify that Docker is installed:
+
+```powershell
+docker --version
+docker compose version
 ```
+
+Both commands should return version information.
+
+## Step 2: Generate JWT Keys
+
+From the project root, open Git Bash and run:
+
+```bash
 bash docker/gen-keys.sh
 ```
 
-This creates `keys/private.pem` and `keys/public.pem`. The View needs the public key to verify logins. Mock login needs the private key to sign tokens.
+This generates the following files:
 
-## Step 2: Create `view/.env` (first time only)
+- `keys/private.pem`
+- `keys/public.pem`
 
-Create the file `view/.env`. For a quick start, use this (mock mode, see Step 5 for the other presets):
+These keys are required for authentication and JWT verification.
 
-```
-USE_MOCKS=true
-DEAD_NODES=
-```
+**Note:** Only generate the keys if they are missing. Running the script overwrites the existing key pair.
 
-## Step 3: Start MySQL (real-nodes mode only)
+## Step 3: Create the Environment File
 
-Skip Steps 3 and 4 if you only want mock mode.
+From the project root, open PowerShell and run:
 
-From the repo root, in PowerShell:
-
-```
-docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 -v "${PWD}/docker/init:/docker-entrypoint-initdb.d" mysql:8
+```powershell
+Copy-Item .env.example .env
 ```
 
-This runs `docker/init/02-course-db.sql` and `03-grades-db.sql`, which create `course_db`, `grades_db`, the tables, demo data and the service DB users. Wait about 30 seconds, then check:
+This creates the root `.env` file used by Docker Compose.
 
-```
-docker logs mysql
-```
+Make sure the database credentials in `.env` match the initial database users configured in `docker/init/00-users-and-dbs.sql`.
 
-Wait for "ready for connections". You will see it **twice**, because MySQL restarts itself once after the init scripts.
+## Step 4: Build and Start the System
 
-- The init scripts only run when the container is **first created**. To reset the data: `docker rm -f mysql`, then run the command again.
-- **"port 3306 is already in use"?** You probably have MySQL installed locally. Either stop it, or run the container on another port by using `-p 3307:3306` instead. If you do that, every node terminal in Step 4 needs `DB_URL` pointing to that port (see the note there).
-- If a container named `mysql` already exists, run `docker rm mysql` first. Use `docker start mysql` to start an existing one.
+Run the following command from the project root:
 
-## Step 4: Build and start the Java nodes (real-nodes mode only)
-
-Build once (and again after pulling new Java code):
-
-```
-mvn -f java/pom.xml package -DskipTests
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml up --build -d
 ```
 
-You should see `BUILD SUCCESS`. Then open **four separate PowerShell terminals** in the repo root, one per node. Each should keep running and not return to a prompt.
+This builds and starts the complete application in the background.
 
-```
-java -jar java/catalog-service/target/catalog-service-1.0.0-SNAPSHOT.jar
-```
-```
-java -jar java/enrollment-service/target/enrollment-service-1.0.0-SNAPSHOT.jar
-```
-```
-java -jar java/grades-view-service/target/grades-view-service-1.0.0-SNAPSHOT.jar
-```
-```
-java -jar java/grades-upload-service/target/grades-upload-service-1.0.0-SNAPSHOT.jar
-```
+The following components will be started:
 
-The default ports and DB credentials already match MySQL on `localhost:3306`, so no env vars are needed.
+- MySQL Database
+- Auth Service
+- Catalog Service
+- Enrollment Service
+- Grades View Service
+- Grades Upload Service
+- Web GUI
 
-**If your MySQL is on 3307**, set `DB_URL` in each terminal before its `java -jar` line:
+The first build may take several minutes because Docker needs to download dependencies and build the Java services.
 
-```
-# catalog and enrollment
-$env:DB_URL="jdbc:mysql://localhost:3307/course_db"
+## Step 5: Check Container Status
 
-# grades view and grades upload
-$env:DB_URL="jdbc:mysql://localhost:3307/grades_db"
+To verify that all containers have started successfully, run:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml ps
 ```
 
-If a node crashes with "Public Key Retrieval is not allowed", add `?allowPublicKeyRetrieval=true` to the end of its `DB_URL`. If it crashes right at startup with a connection error, MySQL probably wasn't ready yet, so wait and run it again.
+To display the service names defined in Docker Compose:
 
-## Step 5: Switch between mock mode and real-nodes mode
-
-The View decides what to talk to using `view/.env`. Pick one of these presets, **save the file, then stop the View (Ctrl+C) and start it again with `npm run dev`**. The settings are only read at startup.
-
-| Mode | `view/.env` | What you need running |
-| --- | --- | --- |
-| **Mock** (everything fake) | `USE_MOCKS=true`<br>`DEAD_NODES=` | Just the View |
-| **Real nodes + mock login** (use this now) | `USE_MOCKS=false`<br>`MOCK_SERVICES=auth`<br>`DEAD_NODES=` | MySQL + the 4 Java nodes + View |
-| **Fully real** (once Auth exists) | `USE_MOCKS=false`<br>`DEAD_NODES=` | MySQL + all 5 nodes + View |
-| **Mixed** (fake only some nodes) | `USE_MOCKS=false`<br>`MOCK_SERVICES=auth,catalog`<br>`DEAD_NODES=` | Real nodes for everything not listed |
-
-Service names for `MOCK_SERVICES` and `DEAD_NODES` are `auth`, `catalog`, `enrollment`, `gradesView` and `gradesUpload` (comma-separated, case-sensitive).
-
-**How to tell which mode you're in:** the mock `/courses` page shows only 3 courses (CSADPRG, STDISCM, STADVDB). The real database has 8 courses, including CCPROG3, CCINOV8 and CSNETWK.
-
-## Step 6: Start the View
-
-```
-cd view
-npm install
-npm run dev
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml config --services
 ```
 
-Open http://localhost:8080.
+Make sure the required services are running before proceeding.
 
-Use `npm run dev`, **not** `npm start`. Only `dev` loads `.env`; `npm start` ignores it and tries to reach real nodes.
+## Step 6: Open the Application
 
-### Demo logins (mock login only)
+Open your browser and navigate to:
 
-All accounts use the password `password123`.
+**http://localhost:8080**
 
-- Students: `12012345`, `12012346`, `12012347`, `12012348`, `12012349`
-- Faculty: `fac001`, `fac002`, `fac003`
+The frontend should now communicate with the actual backend services and MySQL database.
+
+Log in using the demo accounts provided below.
 
 ---
 
-## Checking that everything is connected (real-nodes mode)
+# Refreshing the Application
 
-Log in and click through each page. If it shows real data, that link works:
+If you make changes to the application or encounter outdated content, you can refresh or restart it using the following methods.
 
-- `/courses` shows 8 courses from the database
-- `/enroll` and `/enrollments` use the enrollment node
-- `/grades` uses the grades view node (log in as `12012345` and you should see CCPROG3 and STADVDB)
-- `/grades/upload` (faculty) uses the grades upload node
+### 1. Refresh the Browser
 
-A page that says "currently unavailable" means the View can't reach that node. Check that its terminal is still running and on the right port.
+If the application is already running, simply refresh the browser:
 
-## Testing node failures
+- Windows: `Ctrl + R`
+- Hard refresh: `Ctrl + Shift + R`
 
-**Real nodes:**
+A hard refresh forces the browser to reload the page and its resources.
 
-1. Log in as a student and a faculty member.
-2. Close one node's terminal (Ctrl+C).
-3. Click every page. Only that node's pages should show the 503 "currently unavailable" message (it can take up to 2 seconds). Everything else should work.
-4. Start the node again and refresh. The page should recover **without restarting the View or logging in again**.
+### 2. Restart the Application
 
-| Node stopped | What should fail | What should still work |
-| --- | --- | --- |
-| Catalog | `/courses` | enrolling, my enrollments, grades |
-| Enrollment | `/enroll`, `/enrollments` | courses, grades |
-| Grades View | `/grades` | faculty upload, courses, enrollment |
-| Grades Upload | `/grades/upload` | student grades, courses, enrollment |
-| Auth | new logins only | everything for users already logged in (the View checks tokens locally) |
+If the application is not responding or you need to restart the containers, run:
 
-Also try starting the View while one node was never started: the rest should boot and work.
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml restart
+```
 
-**Mock mode:** set `DEAD_NODES=catalog` (or any list of names) in `.env` and restart the View to fake a dead node. This is handy for checking the error pages, but it does not test real recovery.
+This restarts the running containers without rebuilding the application.
 
-`docs/member4-demo.md` has a table for recording these results.
+### 3. Rebuild After Code Changes
+
+If you have pulled new code or made changes that need to be included in the Docker images, run:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml up --build -d
+```
+
+This rebuilds the images when necessary and starts the updated containers.
+
+**Note:** A normal browser refresh does not rebuild the backend services. Use the rebuild command when you need Docker to incorporate code changes into the images.
 
 ---
 
-## Looking inside the database
+# Demo Accounts
 
-```
-docker exec -it mysql mysql -uroot -proot
-```
+The application provides demo accounts for students and faculty members.
 
-Then:
+All demo accounts use the same password:
 
-```sql
-SHOW DATABASES;
-USE course_db;
-SELECT * FROM courses;
-SELECT * FROM enrollments;   -- fills up as students enroll
-USE grades_db;
-SELECT * FROM grades;        -- fills up as faculty upload grades
-exit
-```
+**Password:** `password123`
 
-Or run a single query without opening the prompt:
-
-```
-docker exec -it mysql mysql -uroot -proot -e "SELECT * FROM course_db.enrollments;"
-```
-
-The root password is `root`. The service accounts (`catalog_user`, `enrollment_user`, `grades_view_user`, `grades_upload_user`) are created by the init scripts and used by the nodes automatically.
-## Authentication demo accounts
-
-The local demo database seeds these accounts. The password for every account is
-`password123`
-
-the database stores only per-account BCrypt hashes.
-
-| Username | Role | Demo password |
-| --- | --- | --- |
+| Username | Role | Password |
+|---|---|---|
 | `12012345` | Student | `password123` |
 | `12012346` | Student | `password123` |
 | `12012347` | Student | `password123` |
@@ -193,37 +178,218 @@ the database stores only per-account BCrypt hashes.
 | `fac002` | Faculty | `password123` |
 | `fac003` | Faculty | `password123` |
 
-## Run the full system with Docker Compose
+The database stores per-account BCrypt password hashes rather than plaintext passwords.
 
-Requirements: Docker Desktop with Compose. From the repository root, create a
-local environment file:
+---
+
+# Database Information
+
+The system uses MySQL to store course, enrollment, and grades information.
+
+### Database Names
+
+| Database | Purpose |
+|---|---|
+| `course_db` | Stores course and enrollment information |
+| `grades_db` | Stores student grades |
+
+### Database Accounts
+
+The following service accounts are created by the database initialization scripts:
+
+- `catalog_user`
+- `enrollment_user`
+- `grades_view_user`
+- `grades_upload_user`
+
+The backend services use their respective database accounts to access the database.
+
+The development database credentials are configured in the root `.env` file and must match the initial users created in `docker/init/00-users-and-dbs.sql`.
+
+
+# Fault Tolerance Testing
+
+One of the main objectives of this project is to demonstrate that the failure of one backend node does not cause the entire distributed system to stop working.
+
+The following procedures can be used to test node failure, fault isolation, and recovery.
+
+## 1. Identify the Service Names
+
+Run:
 
 ```powershell
-Copy-Item .env.example .env
+docker compose --env-file .env -f docker/docker-compose.yml config --services
 ```
 
-The Compose stack uses `keys/private.pem` and `keys/public.pem`. If either key
-is missing, generate the pair with `bash docker/gen-keys.sh` (for example from
-Git Bash). That script overwrites an existing pair, so do not run it when you
-need to preserve the current signing key.
+This displays the actual service names used by Docker Compose.
 
-Start all seven containers from the repository root:
+Use the returned names in the following commands. The examples below assume the service names are:
+
+- `auth`
+- `catalog`
+- `enrollment`
+- `grades-view`
+- `grades-upload`
+
+## 2. Stop a Node
+
+For example, to stop the Catalog Service:
 
 ```powershell
-docker compose --env-file .env -f docker/docker-compose.yml up --build
+docker compose --env-file .env -f docker/docker-compose.yml stop catalog
 ```
 
-The frontend is available at <http://localhost:8080>; MySQL is published on
-port `3307`, and the gRPC services on ports `50051` through `50055`. The
-development database credentials in `.env.example` must match the initial
-users created in `docker/init/00-users-and-dbs.sql`.
+This stops the Catalog container without stopping the other services.
 
-Stop the containers while preserving database data:
+Check the container statuses:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml ps
+```
+
+## 3. Test the Application During the Failure
+
+Open the application:
+
+http://localhost:8080
+
+Try performing the following actions:
+
+1. Log in using a student account.
+2. Open the course catalog.
+3. Try enrolling in a course.
+4. Open the grades page.
+5. Log in using a faculty account.
+6. Try accessing the grade upload page.
+
+Observe which features remain operational and which become unavailable.
+
+**Expected behavior:** Only the functionality dependent on the failed node should become unavailable. Other independent services should continue working.
+
+A failed dependency may also affect related operations.
+
+## 4. Repeat the Test for Other Nodes
+
+After testing a node, restore it before testing another one.
+
+To restore the Catalog Service:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml start catalog
+```
+
+Repeat the procedure for the other services.
+
+| Node Stopped | Features to Test |
+|---|---|
+| Auth | Existing sessions and new logins |
+| Catalog | Course listing and enrollment |
+| Enrollment | Course enrollment and enrollment records |
+| Grades View | Viewing student grades |
+| Grades Upload | Faculty grade uploads |
+
+**Note:** Do not stop MySQL when testing individual application nodes. This ensures that each test isolates the failure of one backend service.
+
+## 5. Test an Unexpected Node Failure
+
+You can also simulate an abrupt node failure instead of gracefully stopping a container.
+
+For example, to kill the Catalog Service:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml kill catalog
+```
+
+Check the container status:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml ps
+```
+
+Open the application and repeat the functionality tests.
+
+## 6. Test Node Recovery
+
+After stopping or killing a node, restart it using:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml up -d catalog
+```
+
+Check whether the container has returned to a running state:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml ps
+```
+
+Refresh the application and test the previously unavailable functionality.
+
+**Expected behavior:** The recovered service should resume handling requests without requiring the entire system to restart or users to log in again.
+
+---
+
+# Viewing Service Logs
+
+If a service encounters an error or becomes unavailable, you can inspect its logs.
+
+For example, to view the Catalog Service logs:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml logs -f catalog
+```
+
+Replace `catalog` with the actual service name you want to inspect.
+
+To view logs from all services:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml logs -f
+```
+
+Press `Ctrl + C` to stop viewing the logs.
+
+---
+
+# Stopping the Application
+
+To stop all containers while preserving database data:
 
 ```powershell
 docker compose --env-file .env -f docker/docker-compose.yml down
 ```
 
-To reset the databases and run a clean initialization, add `-v` to `down`.
-This deletes the Compose MySQL data volume.
+To completely reset the database and remove its stored volume:
+
+```powershell
+docker compose --env-file .env -f docker/docker-compose.yml down -v
+```
+
+**Warning:** The `-v` option deletes the database volume and all stored data. Use it only when you want a clean database initialization.
+
+---
+
+# Troubleshooting
+
+| Problem | Possible Solution |
+|---|---|
+| `docker is not recognized` | Install Docker Desktop and make sure it is running. Open a new terminal afterward. |
+| Docker daemon connection error | Start Docker Desktop and wait until it is ready. |
+| Port `8080` is already in use | Check whether another application is using port `8080`. |
+| Port `3307` is already in use | Check whether another MySQL instance is using the port. |
+| JWT key error | Check whether `keys/private.pem` and `keys/public.pem` exist. |
+| Login does not work | Check the Auth Service logs and verify the database configuration. |
+| Frontend cannot reach backend services | Check the Docker container statuses and service logs. |
+| Database connection error | Verify the database credentials and initialization scripts. |
+| A feature displays unavailable | Check whether its corresponding backend service is running. |
+| Application does not reflect recent changes | Hard-refresh the browser or rebuild the Docker images. |
+
+## Important Notes
+
+- Always run Docker Compose commands from the repository root.
+- The frontend is accessible at `http://localhost:8080`.
+- Make sure Docker Desktop is running before starting the application.
+- Do not regenerate JWT keys unnecessarily because doing so overwrites the existing key pair.
+- Do not use `docker compose down -v` unless you intend to reset the database.
+- Make sure the environment variables and database credentials are configured correctly before starting the system.
+- Use `docker compose up --build -d` when rebuilding the application after code changes.
 
