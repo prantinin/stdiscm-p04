@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # STDISCM Distributed Enrollment System: Running the App
 
 ## Step 1: Generate the JWT keys (first time only)
@@ -176,7 +175,6 @@ docker exec -it mysql mysql -uroot -proot -e "SELECT * FROM course_db.enrollment
 ```
 
 The root password is `root`. The service accounts (`catalog_user`, `enrollment_user`, `grades_view_user`, `grades_upload_user`) are created by the init scripts and used by the nodes automatically.
-=======
 ## Authentication demo accounts
 
 The local demo database seeds these accounts. The password for every account is
@@ -229,4 +227,3 @@ docker compose --env-file .env -f docker/docker-compose.yml down
 To reset the databases and run a clean initialization, add `-v` to `down`.
 This deletes the Compose MySQL data volume.
 
->>>>>>> 6405387b811562415ad5d1707c27bab071354d52
