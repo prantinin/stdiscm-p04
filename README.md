@@ -21,9 +21,6 @@ A distributed enrollment system consisting of a web-based frontend, five backend
 Before running the application, make sure you have installed:
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Git for Windows](https://git-scm.com/)
-
-You will also need the project repository and its configuration files.
 
 ---
 
@@ -168,15 +165,16 @@ All demo accounts use the same password:
 **Password:** `password123`
 
 | Username | Role | Password |
-|---|---|---|
-| `12012345` | Student | `password123` |
-| `12012346` | Student | `password123` |
-| `12012347` | Student | `password123` |
-| `12012348` | Student | `password123` |
-| `12012349` | Student | `password123` |
-| `fac001` | Faculty | `password123` |
-| `fac002` | Faculty | `password123` |
-| `fac003` | Faculty | `password123` |
+|---------------|---------|---------------|
+|   `12012345`  | Student | `password123` |
+|   `12012346`  | Student | `password123` |
+|   `12012347`  | Student | `password123` |
+|   `12012348`  | Student | `password123` |
+|   `12012349`  | Student | `password123` |
+|   `fac001`    | Faculty | `password123` |
+|   `fac002`    | Faculty | `password123` |
+|   `fac003`    | Faculty | `password123` |
+|---------------|---------|---------------|
 
 The database stores per-account BCrypt password hashes rather than plaintext passwords.
 
@@ -189,9 +187,10 @@ The system uses MySQL to store course, enrollment, and grades information.
 ### Database Names
 
 | Database | Purpose |
-|---|---|
-| `course_db` | Stores course and enrollment information |
-| `grades_db` | Stores student grades |
+|-------------|-------------------------------------------|
+| `course_db` | Stores course and enrollment information  |
+| `grades_db` | Stores student grades                     |
+|-------------|-------------------------------------------|
 
 ### Database Accounts
 
@@ -205,7 +204,6 @@ The following service accounts are created by the database initialization script
 The backend services use their respective database accounts to access the database.
 
 The development database credentials are configured in the root `.env` file and must match the initial users created in `docker/init/00-users-and-dbs.sql`.
-
 
 # Fault Tolerance Testing
 
@@ -281,12 +279,13 @@ docker compose --env-file .env -f docker/docker-compose.yml start catalog
 Repeat the procedure for the other services.
 
 | Node Stopped | Features to Test |
-|---|---|
-| Auth | Existing sessions and new logins |
-| Catalog | Course listing and enrollment |
-| Enrollment | Course enrollment and enrollment records |
-| Grades View | Viewing student grades |
-| Grades Upload | Faculty grade uploads |
+|---------------|-------------------------------------------|
+| Auth          | Existing sessions and new logins          |
+| Catalog       | Course listing and enrollment             |
+| Enrollment    | Course enrollment and enrollment records  |
+| Grades View   | Viewing student grades                    |
+| Grades Upload | Faculty grade uploads                     |
+|---------------|-------------------------------------------|
 
 **Note:** Do not stop MySQL when testing individual application nodes. This ensures that each test isolates the failure of one backend service.
 
@@ -393,7 +392,6 @@ exit
 ```
 
 ---
-
 
 # Troubleshooting
 
