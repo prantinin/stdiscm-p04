@@ -1,8 +1,8 @@
 package edu.dlsu.enrollment.gradesupload;
 
 import com.zaxxer.hikari.HikariDataSource;
-import edu.dlsu.enrollment.devsecurity.AuthUser;
-import edu.dlsu.enrollment.devsecurity.DevAuthInterceptor;
+import edu.dlsu.enrollment.security.AuthContext;
+import edu.dlsu.enrollment.security.AuthUser;
 import enrollment.gradesupload.GradeUploadServiceGrpc;
 import enrollment.gradesupload.UploadGradeRequest;
 import enrollment.gradesupload.UploadGradeResponse;
@@ -14,12 +14,12 @@ import java.util.regex.Pattern;
 
 public final class GradesUploadServiceImpl extends GradeUploadServiceGrpc.GradeUploadServiceImplBase {
   private static final Set<String> GRADES = Set.of("4.0", "3.5", "3.0", "2.5", "2.0", "1.5", "1.0", "0.0");
-  private static final Pattern TERM = Pattern.compile("\\d{4}-T[1-4]");
+  private static final Pattern TERM = Pattern.compile("\\d{4}-T[1-3]");
   private final HikariDataSource dataSource;
   public GradesUploadServiceImpl(HikariDataSource dataSource) { this.dataSource = dataSource; }
 
   @Override public void uploadGrade(UploadGradeRequest request, StreamObserver<UploadGradeResponse> observer) {
-    AuthUser user = DevAuthInterceptor.USER.get();
+    AuthUser user = AuthContext.current();
     if (user == null) { observer.onError(Status.UNAUTHENTICATED.withDescription("Missing or invalid token").asRuntimeException()); return; }
     if (!"FACULTY".equals(user.role())) { observer.onError(Status.PERMISSION_DENIED.withDescription("Faculty only").asRuntimeException()); return; }
     String student = request.getStudentUsername().trim(), course = request.getCourseCode().trim(), term = request.getTerm().trim(), grade = request.getGrade().trim();

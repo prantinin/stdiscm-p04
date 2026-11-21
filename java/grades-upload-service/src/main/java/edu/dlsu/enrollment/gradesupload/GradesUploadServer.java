@@ -2,7 +2,8 @@ package edu.dlsu.enrollment.gradesupload;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import edu.dlsu.enrollment.devsecurity.DevAuthInterceptor;
+import edu.dlsu.enrollment.security.AuthInterceptor;
+import edu.dlsu.enrollment.security.JwtVerifier;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptors;
@@ -11,7 +12,7 @@ public final class GradesUploadServer {
   public static void main(String[] args) throws Exception {
     HikariDataSource ds = dataSource();
     Server server = ServerBuilder.forPort(Integer.parseInt(env("GRPC_PORT", "50055")))
-        .addService(ServerInterceptors.intercept(new GradesUploadServiceImpl(ds), new DevAuthInterceptor())).build().start();
+        .addService(ServerInterceptors.intercept(new GradesUploadServiceImpl(ds), new AuthInterceptor(new JwtVerifier()))).build().start();
     Runtime.getRuntime().addShutdownHook(new Thread(() -> { server.shutdown(); ds.close(); }));
     System.out.println("Grades Upload gRPC server listening on " + server.getPort()); server.awaitTermination();
   }

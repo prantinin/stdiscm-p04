@@ -59,16 +59,16 @@ exports.upload = async (req, res) => {
     academic_year: academicYearChoice,
     older_year: olderYear,
     term_number: termNumber,
-    term: year && /^[1-4]$/.test(termNumber) ? `${year}-T${termNumber}` : '',
+    term: year && /^[1-3]$/.test(termNumber) ? `${year}-T${termNumber}` : '',
     grade: (req.body.grade || '').trim(),
   };
   const rerender = (msg) => res.status(400).render('upload-grades', { values, gradeOptions: GRADE_OPTIONS, error: msg });
 
   if (!values.student_username || !values.course_code || !values.grade) return rerender('Student ID, course, and grade are required.');
   if (!year) return rerender(academicYearChoice === 'older' ? 'Choose a valid year before 2020.' : 'Choose an academic year from 2020 through the current year.');
-  if (!/^[1-4]$/.test(termNumber)) return rerender('Choose a valid academic term (Term 1 through Term 4).');
+  if (!/^[1-3]$/.test(termNumber)) return rerender('Choose a valid academic term (Term 1 through Term 3).');
   if (values.student_username.length > 32 || values.course_code.length > 16) return rerender('Student ID or course code is too long.');
-  if (!/^\d{4}-T[1-4]$/.test(values.term)) return rerender('Choose a valid academic year and term.');
+  if (!/^\d{4}-T[1-3]$/.test(values.term)) return rerender('Choose a valid academic year and term.');
   if (!GRADE_OPTIONS.includes(values.grade)) return rerender('Invalid grade.');
 
   try {

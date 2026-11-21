@@ -1,8 +1,8 @@
 package edu.dlsu.enrollment.gradesview;
 
 import com.zaxxer.hikari.HikariDataSource;
-import edu.dlsu.enrollment.devsecurity.AuthUser;
-import edu.dlsu.enrollment.devsecurity.DevAuthInterceptor;
+import edu.dlsu.enrollment.security.AuthContext;
+import edu.dlsu.enrollment.security.AuthUser;
 import enrollment.gradesview.GetMyGradesRequest;
 import enrollment.gradesview.GetMyGradesResponse;
 import enrollment.gradesview.GradeRecord;
@@ -16,7 +16,7 @@ public final class GradesViewServiceImpl extends GradesViewServiceGrpc.GradesVie
   public GradesViewServiceImpl(HikariDataSource dataSource) { this.dataSource = dataSource; }
 
   @Override public void getMyGrades(GetMyGradesRequest request, StreamObserver<GetMyGradesResponse> observer) {
-    AuthUser user = DevAuthInterceptor.USER.get();
+    AuthUser user = AuthContext.current();
     if (user == null) { observer.onError(Status.UNAUTHENTICATED.withDescription("Missing or invalid token").asRuntimeException()); return; }
     if (!"STUDENT".equals(user.role())) { observer.onError(Status.PERMISSION_DENIED.withDescription("Students only").asRuntimeException()); return; }
     try (var connection = dataSource.getConnection();
