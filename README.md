@@ -421,12 +421,3 @@ exit
 - Use `docker compose up --build -d` when rebuilding the application after code changes.
 
 ---
-
-# Member 4: Grades Services
-
-The Grades View and Grades Upload nodes are separate Java gRPC modules with dedicated Docker containers and HikariCP pools connected to `grades_db`. Both use `security-common` to verify RS256 bearer tokens. Grades View accepts STUDENT users and derives the queried student from the verified JWT subject. Grades Upload accepts FACULTY users and sets `uploaded_by` from that subject.
-
-Faculty can enter a student ID manually and select a course loaded from Catalog. Academic year and term are separate fields; terms are 1–3 and are sent to the service as `YYYY-T1`, `YYYY-T2`, or `YYYY-T3`. Older years are available. The accepted grades are `4.0`, `3.5`, `3.0`, `2.5`, `2.0`, `1.5`, `1.0`, and `0.0`. Uploading an existing student/course/term combination updates that grade.
-
-The upload service does not verify faculty-course assignment or student enrollment because grade services do not call other backend nodes. For the Member 4 walkthrough and test commands, see [docs/member4-demo.md](docs/member4-demo.md). The acceptance checklist in that guide should be updated with observed results after the integration scenarios are run.
-
