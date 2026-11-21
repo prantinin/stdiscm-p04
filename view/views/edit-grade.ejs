@@ -1,0 +1,27 @@
+<%- include('partials/header') %>
+<div class="card narrow">
+  <h1>Edit Grade</h1>
+  <p class="hint">Only the grade value can be changed.</p>
+  <dl class="grade-details">
+    <dt>Student ID</dt><dd><%= grade.student_username %></dd>
+    <dt>Course</dt><dd><%= grade.course_code %><% if (grade.course_name) { %> — <%= grade.course_name %><% } %></dd>
+    <dt>Academic Year</dt><dd><%= grade.academic_year || '—' %></dd>
+    <dt>Term</dt><dd><%= grade.term_label %></dd>
+    <dt>Uploaded By</dt><dd><%= grade.uploaded_by %></dd>
+    <dt>Uploaded At</dt><dd><%= new Date(Number(grade.uploaded_at)).toLocaleString() %></dd>
+  </dl>
+  <form method="post" action="/grades/manage/<%= grade.grade_id %>/edit">
+    <label for="grade">Grade</label>
+    <select id="grade" name="grade" required>
+      <option value="">Select a grade…</option>
+      <% gradeOptions.forEach(value => { %>
+        <option value="<%= value %>" <%= (grade.selected_grade || grade.grade) === value ? 'selected' : '' %>><%= value %></option>
+      <% }) %>
+    </select>
+    <div class="actions form-actions">
+      <button type="submit">Save Grade</button>
+      <a class="button-link secondary-link" href="/grades/manage">Cancel</a>
+    </div>
+  </form>
+</div>
+<%- include('partials/footer') %>

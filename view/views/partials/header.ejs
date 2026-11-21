@@ -17,6 +17,7 @@
       <a href="/grades">My Grades</a>
     <% } else if (user.role === 'FACULTY') { %>
       <a href="/grades/upload">Upload Grades</a>
+      <a href="/grades/manage">Manage Grades</a>
     <% } %>
     <span class="spacer"></span>
     <span class="who"><%= user.name %> (<%= user.role %>)</span>

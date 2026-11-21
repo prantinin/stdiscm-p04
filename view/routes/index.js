@@ -19,6 +19,10 @@ router.post('/enroll', requireLogin, requireRole('STUDENT'), enrollC.enroll);
 router.get('/enrollments', requireLogin, requireRole('STUDENT'), enrollC.list);
 
 router.get('/grades', requireLogin, requireRole('STUDENT'), gradesC.myGrades);
+router.get('/grades/manage', requireLogin, requireRole('FACULTY'), gradesC.manageGrades);
+router.get('/grades/manage/:gradeId/edit', requireLogin, requireRole('FACULTY'), gradesC.showEditGrade);
+router.post('/grades/manage/:gradeId/edit', requireLogin, requireRole('FACULTY'), gradesC.editGrade);
+router.post('/grades/manage/:gradeId/delete', requireLogin, requireRole('FACULTY'), gradesC.deleteGrade);
 router.get('/grades/upload/courses', requireLogin, requireRole('FACULTY'), gradesC.uploadCourses);
 router.get('/grades/upload', requireLogin, requireRole('FACULTY'), gradesC.showUpload);
 router.post('/grades/upload', requireLogin, requireRole('FACULTY'), gradesC.upload);

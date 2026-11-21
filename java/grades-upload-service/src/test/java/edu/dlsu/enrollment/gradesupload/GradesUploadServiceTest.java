@@ -5,6 +5,9 @@ import com.zaxxer.hikari.HikariDataSource;
 import edu.dlsu.enrollment.security.AuthInterceptor;
 import edu.dlsu.enrollment.security.JwtVerifier;
 import enrollment.gradesupload.GradeUploadServiceGrpc;
+import enrollment.gradesupload.DeleteGradeRequest;
+import enrollment.gradesupload.EditGradeRequest;
+import enrollment.gradesupload.ListUploadedGradesRequest;
 import enrollment.gradesupload.UploadGradeRequest;
 import io.grpc.ClientInterceptors;
 import io.grpc.ManagedChannel;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Date;
@@ -106,6 +110,90 @@ class GradesUploadServiceTest {
         assertInvalid(client, grade("2026-T1", ""));
     }
 
+    @Test
+    void facultyListsOnlyGradesTheyUploaded() throws Exception {
+        seedGrade("12012345", "CSARCH2", "2026-T2", "4.0", "fac001");
+        seedGrade("12012345", "CCPROG3", "2026-T1", "3.5", "fac001");
+        seedGrade("12012345", "AAA", "2026-T1", "3.0", "fac001");
+        seedGrade("12012346", "CSARCH2", "2026-T1", "4.0", "fac002");
+
+        var response = clientFor("fac001", "FACULTY").listUploadedGrades(ListUploadedGradesRequest.getDefaultInstance());
+
+        assertEquals(3, response.getGradesCount());
+        assertEquals("2026-T1", response.getGrades(0).getTerm());
+        assertEquals("AAA", response.getGrades(0).getCourseCode());
+        assertEquals("CCPROG3", response.getGrades(1).getCourseCode());
+        assertEquals("2026-T2", response.getGrades(2).getTerm());
+        assertEquals("12012345", response.getGrades(0).getStudentUsername());
+        assertEquals("fac001", response.getGrades(0).getUploadedBy());
+    }
+
+    @Test
+    void facultyCanEditOnlyTheirExistingGradeWithoutCreatingDuplicates() throws Exception {
+        long gradeId = seedGrade("12012345", "CCPROG3", "2026-T1", "3.5", "fac001");
+
+        var response = clientFor("fac001", "FACULTY").editGrade(EditGradeRequest.newBuilder()
+            .setGradeId(gradeId).setGrade("4.0").build());
+
+        assertEquals(gradeId, response.getGrade().getGradeId());
+        assertEquals("4.0", response.getGrade().getGrade());
+        assertEquals("12012345", response.getGrade().getStudentUsername());
+        assertEquals("CCPROG3", response.getGrade().getCourseCode());
+        assertEquals(1, countGrades("12012345", "CCPROG3", "2026-T1"));
+
+        var forbidden = assertThrows(StatusRuntimeException.class,
+            () -> clientFor("fac002", "FACULTY").editGrade(EditGradeRequest.newBuilder()
+                .setGradeId(gradeId).setGrade("3.0").build()));
+        assertEquals(Status.Code.NOT_FOUND, forbidden.getStatus().getCode());
+        assertEquals("4.0", gradeValue(gradeId));
+    }
+
+    @Test
+    void rejectsInvalidEditGradeAndStudentCannotManageGrades() throws Exception {
+        long gradeId = seedGrade("12012345", "CCPROG3", "2026-T1", "3.5", "fac001");
+        var invalid = assertThrows(StatusRuntimeException.class,
+            () -> clientFor("fac001", "FACULTY").editGrade(EditGradeRequest.newBuilder()
+                .setGradeId(gradeId).setGrade("1.7").build()));
+        assertEquals(Status.Code.INVALID_ARGUMENT, invalid.getStatus().getCode());
+
+        var student = clientFor("12012345", "STUDENT");
+        var listDenied = assertThrows(StatusRuntimeException.class,
+            () -> student.listUploadedGrades(ListUploadedGradesRequest.getDefaultInstance()));
+        assertEquals(Status.Code.PERMISSION_DENIED, listDenied.getStatus().getCode());
+        var editDenied = assertThrows(StatusRuntimeException.class,
+            () -> student.editGrade(EditGradeRequest.newBuilder().setGradeId(gradeId).setGrade("4.0").build()));
+        assertEquals(Status.Code.PERMISSION_DENIED, editDenied.getStatus().getCode());
+        var deleteDenied = assertThrows(StatusRuntimeException.class,
+            () -> student.deleteGrade(DeleteGradeRequest.newBuilder().setGradeId(gradeId).build()));
+        assertEquals(Status.Code.PERMISSION_DENIED, deleteDenied.getStatus().getCode());
+    }
+
+    @Test
+    void deleteUsesGradeIdAndPreservesOtherRecords() throws Exception {
+        long target = seedGrade("12012345", "CCPROG3", "2026-T1", "3.5", "fac001");
+        long otherStudent = seedGrade("12012346", "CSARCH2", "2026-T1", "4.0", "fac001");
+        long otherFaculty = seedGrade("12012347", "STDISCM", "2026-T2", "3.0", "fac002");
+
+        var response = clientFor("fac001", "FACULTY").deleteGrade(DeleteGradeRequest.newBuilder().setGradeId(target).build());
+
+        assertEquals(true, response.getDeleted());
+        assertEquals(0, countById(target));
+        assertEquals(1, countById(otherStudent));
+        assertEquals(1, countById(otherFaculty));
+        var forbidden = assertThrows(StatusRuntimeException.class,
+            () -> clientFor("fac001", "FACULTY").deleteGrade(DeleteGradeRequest.newBuilder().setGradeId(otherFaculty).build()));
+        assertEquals(Status.Code.NOT_FOUND, forbidden.getStatus().getCode());
+        assertEquals(1, countById(otherFaculty));
+    }
+
+    @Test
+    void managementMethodsRejectUnauthenticatedRequests() {
+        var client = GradeUploadServiceGrpc.newBlockingStub(channel);
+        var error = assertThrows(StatusRuntimeException.class,
+            () -> client.listUploadedGrades(ListUploadedGradesRequest.getDefaultInstance()));
+        assertEquals(Status.Code.UNAUTHENTICATED, error.getStatus().getCode());
+    }
+
     private void assertInvalid(GradeUploadServiceGrpc.GradeUploadServiceBlockingStub client, UploadGradeRequest request) {
         var error = assertThrows(StatusRuntimeException.class, () -> client.uploadGrade(request));
         assertEquals(Status.Code.INVALID_ARGUMENT, error.getStatus().getCode());
@@ -113,6 +201,52 @@ class GradesUploadServiceTest {
 
     private UploadGradeRequest grade(String term, String value) {
         return UploadGradeRequest.newBuilder().setStudentUsername("12012345").setCourseCode("CCPROG3").setTerm(term).setGrade(value).build();
+    }
+
+    private long seedGrade(String student, String course, String term, String grade, String uploadedBy) throws Exception {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "INSERT INTO grades (student_username, course_code, term, grade, uploaded_by) VALUES (?, ?, ?, ?, ?)",
+                 Statement.RETURN_GENERATED_KEYS)) {
+            statement.setString(1, student);
+            statement.setString(2, course);
+            statement.setString(3, term);
+            statement.setString(4, grade);
+            statement.setString(5, uploadedBy);
+            statement.executeUpdate();
+            try (ResultSet keys = statement.getGeneratedKeys()) {
+                keys.next();
+                return keys.getLong(1);
+            }
+        }
+    }
+
+    private int countGrades(String student, String course, String term) throws Exception {
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement();
+             ResultSet rows = statement.executeQuery("SELECT COUNT(*) FROM grades WHERE student_username='" + student + "' AND course_code='" + course + "' AND term='" + term + "'")) {
+            rows.next();
+            return rows.getInt(1);
+        }
+    }
+
+    private int countById(long id) throws Exception {
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM grades WHERE id = ?")) {
+            statement.setLong(1, id);
+            try (ResultSet rows = statement.executeQuery()) {
+                rows.next();
+                return rows.getInt(1);
+            }
+        }
+    }
+
+    private String gradeValue(long id) throws Exception {
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement("SELECT grade FROM grades WHERE id = ?")) {
+            statement.setLong(1, id);
+            try (ResultSet rows = statement.executeQuery()) {
+                rows.next();
+                return rows.getString(1);
+            }
+        }
     }
 
     private GradeUploadServiceGrpc.GradeUploadServiceBlockingStub clientFor(String subject, String role) {

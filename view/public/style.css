@@ -45,6 +45,18 @@ th, td { padding: 10px 12px; border-bottom: 1px solid #e2e5ea; text-align: left;
 th { background: #eef1f5; font-weight: 600; }
 tr:hover td { background: #fafbfc; }
 td form { margin: 0; }
+.actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.actions form { display: inline; }
+.button-link { display: inline-block; padding: 7px 12px; border-radius: 6px; background: #1f3a5f; color: #fff; text-decoration: none; }
+.button-link:hover { background: #17304f; }
+button.danger { background: #9b2525; }
+button.danger:hover { background: #7d1c1c; }
+.form-actions { margin-top: 20px; }
+.secondary-link { background: #eef1f5; color: #222; }
+.secondary-link:hover { background: #dfe4eb; }
+.grade-details { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 6px 14px; margin: 16px 0; }
+.grade-details dt { font-weight: 600; }
+.grade-details dd { margin: 0; overflow-wrap: anywhere; }
 
 /* forms */
 form label { display: block; margin: 12px 0; font-weight: 500; }

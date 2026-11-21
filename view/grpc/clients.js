@@ -41,4 +41,9 @@ exports.enrollment = {
   listMyEnrollments: (t, req) => call(enrollClient, 'ListMyEnrollments', req, t),
 };
 exports.gradesView = { getMyGrades: (t, req) => call(gradesViewClient, 'GetMyGrades', req, t) };
-exports.gradesUpload = { uploadGrade: (t, req) => call(gradesUploadClient, 'UploadGrade', req, t) };
+exports.gradesUpload = {
+  uploadGrade: (t, req) => call(gradesUploadClient, 'UploadGrade', req, t),
+  listUploadedGrades: (t, req) => call(gradesUploadClient, 'ListUploadedGrades', req, t),
+  editGrade: (t, req) => call(gradesUploadClient, 'EditGrade', req, t),
+  deleteGrade: (t, req) => call(gradesUploadClient, 'DeleteGrade', req, t),
+};

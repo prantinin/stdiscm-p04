@@ -14,6 +14,90 @@ exports.myGrades = async (req, res) => {
   }
 };
 
+function parseGradeId(value) {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function facultyGradeView(grade) {
+  const match = /^(\d{4})-(T[1-4])$/.exec(grade.term || '');
+  return {
+    ...grade,
+    academic_year: match ? match[1] : '',
+    term_label: match ? match[2] : (grade.term || ''),
+  };
+}
+
+function notFound(res) {
+  return res.status(404).render('error', { status: 404, message: 'Grade not found.' });
+}
+
+function handleManagementError(err, req, res, feature) {
+  if (err.code === status.NOT_FOUND) return notFound(res);
+  if (err.code === status.INVALID_ARGUMENT) {
+    return res.status(400).render('error', { status: 400, message: err.details || 'Invalid grade request.' });
+  }
+  return handleError(err, req, res, feature);
+}
+
+exports.manageGrades = async (req, res) => {
+  try {
+    const data = await grpc.gradesUpload.listUploadedGrades(req.token, {});
+    const grades = (data.grades || []).map(facultyGradeView);
+    const success = req.query.updated ? 'Grade updated.' : req.query.deleted ? 'Grade deleted.' : null;
+    res.render('manage-grades', { grades, success });
+  } catch (err) {
+    handleError(err, req, res, 'Manage Grades');
+  }
+};
+
+exports.showEditGrade = async (req, res) => {
+  const gradeId = parseGradeId(req.params.gradeId);
+  if (gradeId === null) return notFound(res);
+  try {
+    const data = await grpc.gradesUpload.listUploadedGrades(req.token, {});
+    const grade = (data.grades || []).find((item) => Number(item.grade_id) === gradeId);
+    if (!grade) return notFound(res);
+    res.render('edit-grade', { grade: facultyGradeView(grade), gradeOptions: GRADE_OPTIONS });
+  } catch (err) {
+    handleError(err, req, res, 'Edit Grade');
+  }
+};
+
+exports.editGrade = async (req, res) => {
+  const gradeId = parseGradeId(req.params.gradeId);
+  if (gradeId === null) return notFound(res);
+  try {
+    const data = await grpc.gradesUpload.listUploadedGrades(req.token, {});
+    const existing = (data.grades || []).find((item) => Number(item.grade_id) === gradeId);
+    if (!existing) return notFound(res);
+    const grade = facultyGradeView(existing);
+    const requestedGrade = typeof req.body.grade === 'string' ? req.body.grade.trim() : '';
+    if (!GRADE_OPTIONS.includes(requestedGrade)) {
+      return res.status(400).render('edit-grade', {
+        grade: { ...grade, selected_grade: requestedGrade },
+        gradeOptions: GRADE_OPTIONS,
+        error: 'Choose a valid grade.',
+      });
+    }
+    await grpc.gradesUpload.editGrade(req.token, { grade_id: gradeId, grade: requestedGrade });
+    res.redirect('/grades/manage?updated=1');
+  } catch (err) {
+    handleManagementError(err, req, res, 'Edit Grade');
+  }
+};
+
+exports.deleteGrade = async (req, res) => {
+  const gradeId = parseGradeId(req.params.gradeId);
+  if (gradeId === null) return notFound(res);
+  try {
+    await grpc.gradesUpload.deleteGrade(req.token, { grade_id: gradeId });
+    res.redirect('/grades/manage?deleted=1');
+  } catch (err) {
+    handleManagementError(err, req, res, 'Delete Grade');
+  }
+};
+
 exports.showUpload = (req, res) => res.render('upload-grades', {
   gradeOptions: GRADE_OPTIONS,
   values: {},

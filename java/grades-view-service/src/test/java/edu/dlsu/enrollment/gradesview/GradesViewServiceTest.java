@@ -87,6 +87,18 @@ class GradesViewServiceTest {
         assertEquals(Status.Code.UNAUTHENTICATED, unsignedError.getStatus().getCode());
     }
 
+    @Test
+    void gradesRemovedFromDatabaseAreNoLongerVisibleToStudent() throws Exception {
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+            statement.executeUpdate("DELETE FROM grades WHERE student_username = '12012345' AND course_code = 'CCPROG3'");
+        }
+
+        var response = clientFor("12012345", "STUDENT").getMyGrades(GetMyGradesRequest.getDefaultInstance());
+
+        assertEquals(2, response.getGradesCount());
+        response.getGradesList().forEach(grade -> assertEquals("12012345", grade.getStudentUsername()));
+    }
+
     private GradesViewServiceGrpc.GradesViewServiceBlockingStub clientFor(String subject, String role) {
         Metadata headers = new Metadata();
         headers.put(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER), "Bearer " + token(subject, role));

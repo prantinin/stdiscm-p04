@@ -5,6 +5,24 @@ option java_package = "enrollment.gradesupload";
 
 service GradeUploadService {
   rpc UploadGrade(UploadGradeRequest) returns (UploadGradeResponse);
+  rpc ListUploadedGrades(ListUploadedGradesRequest) returns (ListUploadedGradesResponse);
+  rpc EditGrade(EditGradeRequest) returns (EditGradeResponse);
+  rpc DeleteGrade(DeleteGradeRequest) returns (DeleteGradeResponse);
 }
 message UploadGradeRequest { string student_username = 1; string course_code = 2; string term = 3; string grade = 4; }
 message UploadGradeResponse { string student_username = 1; string course_code = 2; string term = 3; string grade = 4; int64 uploaded_at = 5; }
+message ListUploadedGradesRequest {}
+message GradeRecord {
+  int64 grade_id = 1;
+  string student_username = 2;
+  string course_code = 3;
+  string term = 4;
+  string grade = 5;
+  string uploaded_by = 6;
+  int64 uploaded_at = 7;
+}
+message ListUploadedGradesResponse { repeated GradeRecord grades = 1; }
+message EditGradeRequest { int64 grade_id = 1; string grade = 2; }
+message EditGradeResponse { GradeRecord grade = 1; }
+message DeleteGradeRequest { int64 grade_id = 1; }
+message DeleteGradeResponse { bool deleted = 1; }

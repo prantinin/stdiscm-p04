@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS grades (
 );
 
 GRANT SELECT ON grades_db.grades TO 'grades_view_user'@'%';
-GRANT SELECT, INSERT, UPDATE ON grades_db.grades TO 'grades_upload_user'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON grades_db.grades TO 'grades_upload_user'@'%';
 
 INSERT INTO grades (student_username, course_code, term, grade, uploaded_by) VALUES
 ('12012345','CCPROG3','2025-T1','3.5','fac001'),

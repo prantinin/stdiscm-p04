@@ -1,0 +1,45 @@
+<%- include('partials/header') %>
+<h1>Manage Grades</h1>
+<p class="hint">You can manage grades uploaded from your faculty account.</p>
+
+<% if (!grades.length) { %>
+  <div class="card"><p>No grades uploaded by your account yet.</p></div>
+<% } else { %>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Course</th>
+          <th>Academic Year</th>
+          <th>Term</th>
+          <th>Grade</th>
+          <th>Uploaded By</th>
+          <th>Uploaded At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% grades.forEach(grade => { %>
+          <tr>
+            <td><%= grade.student_username %></td>
+            <td><%= grade.course_code %><% if (grade.course_name) { %> — <%= grade.course_name %><% } %></td>
+            <td><%= grade.academic_year || '—' %></td>
+            <td><%= grade.term_label %></td>
+            <td><%= grade.grade %></td>
+            <td><%= grade.uploaded_by %></td>
+            <td><%= new Date(Number(grade.uploaded_at)).toLocaleString() %></td>
+            <td class="actions">
+              <a class="button-link" href="/grades/manage/<%= grade.grade_id %>/edit">Edit</a>
+              <form method="post" action="/grades/manage/<%= grade.grade_id %>/delete"
+                    onsubmit="return confirm('Delete this grade record? The student will no longer see it.');">
+                <button class="danger" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+<%- include('partials/footer') %>
